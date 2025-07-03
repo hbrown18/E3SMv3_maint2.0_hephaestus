@@ -2476,6 +2476,11 @@ Embryonic rain size from autoconversion in P3
 Default: 0.000025_rtype
 </entry>
 
+<entry id="p3_rain_evap_coeff" type="real" category="microphysics"
+        group="micro_nl" valid_values="" >
+Scalar for rain evaporation mass tendency within P3
+Default: 1.0_rtype
+</entry>
 
 <!-- micro_p3 -->
 <entry id="p3_qc_autoCon_Expon" type="real" category="microphysics"
@@ -5046,6 +5051,30 @@ Seasalt aerosol emission tuning factor
 Default: set by build-namelist.
 </entry>
 
+<entry id="seasalt_u10_scale" type="real" category="cam_chem"
+       group="aerosol_nl" valid_values="" >
+Seasalt number+mass emission dependence on u10; scales exponent on u10**3.41
+Default: 1.0
+</entry>
+
+<entry id="seasalt_masspart" type="logical" category="cam_chem"
+       group="aerosol_nl" valid_values="" >
+Logical for whether to manually partition seasalt aerosol mass into aitken, accumulation, and coarse modes.
+Default: .false.
+</entry>
+
+<entry id="seasalt_sclfctr_a1" type="real" category="cam_chem"
+       group="aerosol_nl" valid_values="" >
+Seasalt mass partitioning into accumulation mode; ignored if seasalt_masspart=False.
+Default: set by build-namelist.
+</entry>
+
+<entry id="seasalt_sclfctr_a2" type="real" category="cam_chem"
+       group="aerosol_nl" valid_values="" >
+Seasalt mass partitioning into aitken mode; ignored if seasalt_masspart=False.
+Default: set by build-namelist.
+</entry>
+
 <entry id="so2_oh_gprx_scale" type="real" category="cam_chem"
        group="mo_usrrxt_nl" valid_values="" >
 SO2 + OH gas-phase reaction rate scale factor.
@@ -5107,6 +5136,12 @@ Default: set by build-namelist.
 <entry id="dust_emis_fact" type="real" category="cam_chem"
        group="dust_nl" valid_values="" >
 Tuning parameter for dust emissions.
+Default: set by build-namelist.
+</entry>
+
+<entry id="dust_sclfctr_a1" type="real" category="cam_chem"
+       group="dust_nl" valid_values="" >
+Tuning parameter for partitioning of dust emissions into accumulation mode.
 Default: set by build-namelist.
 </entry>
 

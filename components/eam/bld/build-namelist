@@ -3910,6 +3910,7 @@ if ($cfg->get('microphys') =~ /^p3/) {
       add_default($nl, 'p3_qc_accret_expon');
       add_default($nl, 'p3_wbf_coeff');
       add_default($nl, 'p3_max_mean_rain_size');
+      add_default($nl, 'p3_rain_evap_coeff');
       add_default($nl, 'p3_embryonic_rain_size');
       add_default($nl, 'do_prescribed_CCN');
       add_default($nl, 'do_Cooper_inP3');  
@@ -3958,6 +3959,10 @@ if ($chem =~ /_mam/) {
 
 #Sea Salt aerosol emission scale factors
 add_default($nl, 'seasalt_emis_scale');
+add_default($nl, 'seasalt_u10_scale');
+add_default($nl, 'seasalt_masspart');
+add_default($nl, 'seasalt_sclfctr_a1');
+add_default($nl, 'seasalt_sclfctr_a2');
 
 #Scale factors for aerosol reaction rates
 add_default($nl, 'so2_oh_gprx_scale');
@@ -4088,9 +4093,11 @@ if ($chem =~ /_mam/ or $chem =~ /_bam/ or $chem =~ /trop_/) {
     # check whether turbulent mountain stress parameterization is on
     if ($nl->get_value('do_tms') =~ /$TRUE/io) {
 	add_default($nl, 'dust_emis_fact', 'tms'=>'1');
+	add_default($nl, 'dust_sclfctr_a1', 'tms'=>'1');
     }
     else {
 	add_default($nl, 'dust_emis_fact');
+	add_default($nl, 'dust_sclfctr_a1');
     }
 }
 
