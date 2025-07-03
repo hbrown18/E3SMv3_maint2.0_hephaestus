@@ -136,6 +136,7 @@ module micro_p3_interface
       p3_mincdnc               = huge(1.0_rtype), & 
       p3_max_mean_rain_size    = huge(1.0_rtype), &
       p3_embryonic_rain_size   = huge(1.0_rtype), &
+      p3_rain_evap_coeff       = huge(1.0_rtype), &
       micro_nccons             = huge(1.0_rtype)
 
    integer :: ncnst
@@ -168,7 +169,7 @@ subroutine micro_p3_readnl(nlfile)
   namelist /micro_nl/ &
        micro_p3_tableversion, micro_p3_lookup_dir, micro_aerosolactivation, micro_subgrid_cloud, &
        micro_tend_output, p3_autocon_coeff, p3_qc_autocon_expon, p3_nc_autocon_expon, p3_accret_coeff, &
-       p3_qc_accret_expon, p3_wbf_coeff, p3_max_mean_rain_size, p3_embryonic_rain_size, &
+       p3_qc_accret_expon, p3_wbf_coeff, p3_max_mean_rain_size, p3_embryonic_rain_size, p3_rain_evap_coeff, &
        do_prescribed_CCN, do_Cooper_inP3, p3_mincdnc, micro_nccons
 
   !-----------------------------------------------------------------------------
@@ -201,6 +202,7 @@ subroutine micro_p3_readnl(nlfile)
      write(iulog,'(A30,1x,8e12.4)') 'p3_mincdnc',              p3_mincdnc 
      write(iulog,'(A30,1x,8e12.4)') 'p3_max_mean_rain_size',   p3_max_mean_rain_size
      write(iulog,'(A30,1x,8e12.4)') 'p3_embryonic_rain_size',  p3_embryonic_rain_size
+     write(iulog,'(A30,1x,8e12.4)') 'p3_rain_evap_coeff',      p3_rain_evap_coeff
      write(iulog,'(A30,1x,L)')    'do_prescribed_CCN: ',       do_prescribed_CCN
      write(iulog,'(A30,1x,L)')    'do_Cooper_inP3: ',          do_Cooper_inP3
 
@@ -222,6 +224,7 @@ subroutine micro_p3_readnl(nlfile)
   call mpibcast(p3_mincdnc,              1 ,                         mpir8,   0, mpicom) 
   call mpibcast(p3_max_mean_rain_size,   1 ,                         mpir8,   0, mpicom)
   call mpibcast(p3_embryonic_rain_size,  1 ,                         mpir8,   0, mpicom)
+  call mpibcast(p3_rain_evap_coeff,      1 ,                         mpir8,   0, mpicom)
   call mpibcast(do_prescribed_CCN,       1,                          mpilog,  0, mpicom)
   call mpibcast(do_Cooper_inP3,          1,                          mpilog,  0, mpicom)
   call mpibcast(micro_nccons,            1,                          mpir8,   0, mpicom)
@@ -1359,6 +1362,7 @@ end subroutine micro_p3_readnl
          p3_mincdnc,                  & ! IN  imposing minimal Nc 
          p3_max_mean_rain_size,       & ! IN  max mean rain size
          p3_embryonic_rain_size,      & ! IN  embryonic rain size for autoconversion
+         p3_rain_evap_coeff,          & ! IN  rain mass evaporation tendency scalar 
          ! AaronDonahue new stuff
          state%pdel(its:ite,kts:kte), & ! IN pressure level thickness for computing total mass
          exner(its:ite,kts:kte),      & ! IN exner values

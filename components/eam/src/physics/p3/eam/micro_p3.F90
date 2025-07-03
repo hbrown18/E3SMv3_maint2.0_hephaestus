@@ -554,7 +554,7 @@ end function bfb_expm1
 
   SUBROUTINE p3_main_part2(kts, kte, kbot, ktop, kdir, do_predict_nc, do_prescribed_CCN, dt, inv_dt, &
        p3_autocon_coeff,p3_accret_coeff,p3_qc_autocon_expon,p3_nc_autocon_expon,p3_qc_accret_expon, &
-       p3_wbf_coeff,p3_embryonic_rain_size, p3_max_mean_rain_size, &
+       p3_wbf_coeff,p3_embryonic_rain_size, p3_max_mean_rain_size, p3_rain_evap_coeff, &
        pres, dpres, dz, nc_nuceat_tend, exner, inv_exner, inv_cld_frac_l, inv_cld_frac_i, inv_cld_frac_r, ni_activated, &
        inv_qc_relvar, cld_frac_i, cld_frac_l, cld_frac_r, qv_prev, t_prev, &
        t_atm, rho, inv_rho, qv_sat_l, qv_sat_i, qv_supersat_i, rhofacr, rhofaci, acn, qv, th_atm, qc, nc, qr, nr, qi, ni, &
@@ -571,7 +571,7 @@ end function bfb_expm1
     logical(btype), intent(in) :: do_predict_nc, do_prescribed_CCN, do_precip_off
     real(rtype), intent(in) :: dt, inv_dt, nccnst
     real(rtype), intent(in) :: p3_autocon_coeff, p3_accret_coeff, p3_qc_autocon_expon, p3_nc_autocon_expon, p3_qc_accret_expon, &
-         p3_wbf_coeff, p3_embryonic_rain_size, p3_max_mean_rain_size
+         p3_wbf_coeff, p3_embryonic_rain_size, p3_max_mean_rain_size, p3_rain_evap_coeff
 
     real(rtype), intent(in), dimension(kts:kte) :: pres, dpres, dz, nc_nuceat_tend, exner, inv_exner, inv_cld_frac_l,      &
          inv_cld_frac_i, inv_cld_frac_r, ni_activated, inv_qc_relvar, cld_frac_i, cld_frac_l, cld_frac_r, qv_prev, t_prev, &
@@ -856,7 +856,7 @@ end function bfb_expm1
       call evaporate_rain(qr_incld(k),qc_incld(k),nr_incld(k),qi_incld(k), &
            cld_frac_l(k),cld_frac_r(k),qv(k),qv_prev(k),qv_sat_l(k),qv_sat_i(k), &
            ab,abi,epsr,epsi_tot,T_atm(k),t_prev(k),latent_heat_sublim(k),dqsdt,dt,&
-           qr2qv_evap_tend,nr_evap_tend)
+           qr2qv_evap_tend,nr_evap_tend,p3_rain_evap_coeff)
 
       call ice_deposition_sublimation(qi_incld(k), ni_incld(k), t_atm(k), &
            qv_sat_l(k),qv_sat_i(k),epsi,abi,qv(k), p3_wbf_coeff, &
@@ -1256,7 +1256,7 @@ end function bfb_expm1
   SUBROUTINE p3_main(qc,nc,qr,nr,th_atm,qv,dt,qi,qm,ni,bm,                                                                                                               &
        pres,dz,nc_nuceat_tend,nccn_prescribed,ni_activated,frzimm,frzcnt,frzdep,inv_qc_relvar,it,precip_liq_surf,precip_ice_surf,its,ite,kts,kte,diag_eff_radius_qc,     &
        diag_eff_radius_qi,rho_qi,do_predict_nc, do_prescribed_CCN,p3_autocon_coeff,p3_accret_coeff,p3_qc_autocon_expon,p3_nc_autocon_expon,p3_qc_accret_expon,           &
-       p3_wbf_coeff,p3_mincdnc,p3_max_mean_rain_size,p3_embryonic_rain_size,                                                                                             &
+       p3_wbf_coeff,p3_mincdnc,p3_max_mean_rain_size,p3_embryonic_rain_size,p3_rain_evap_coeff,                                                                                             &
        dpres,exner,qv2qi_depos_tend,precip_total_tend,nevapr,qr_evap_tend,precip_liq_flux,precip_ice_flux,rflx,sflx,cflx,cld_frac_r,cld_frac_l,cld_frac_i,               &
        p3_tend_out,mu_c,lamc,liq_ice_exchange,vap_liq_exchange,                                                                                                          &
        vap_ice_exchange,qv_prev,t_prev,col_location,do_precip_off,nccnst,diag_equiv_reflectivity,diag_ze_rain,diag_ze_ice                                                                     &
@@ -1351,6 +1351,7 @@ end function bfb_expm1
     real(rtype), intent(in)                                     :: p3_mincdnc               ! Lower bound of Nc
     real(rtype), intent(in)                                     :: p3_max_mean_rain_size    ! max mean rain size allowed
     real(rtype), intent(in)                                     :: p3_embryonic_rain_size   ! embryonic rain size from autoconversion
+    real(rtype), intent(in)                                     :: p3_rain_evap_coeff       ! scaling coefficient for rain evaporation
 
     ! INPUT needed for PBUF variables used by other parameterizations
 
@@ -1533,7 +1534,7 @@ end function bfb_expm1
 
        call p3_main_part2(kts, kte, kbot, ktop, kdir, do_predict_nc, do_prescribed_CCN, dt, inv_dt, &
             p3_autocon_coeff,p3_accret_coeff,p3_qc_autocon_expon,p3_nc_autocon_expon,p3_qc_accret_expon, &
-            p3_wbf_coeff,p3_embryonic_rain_size, p3_max_mean_rain_size, &
+            p3_wbf_coeff,p3_embryonic_rain_size, p3_max_mean_rain_size, p3_rain_evap_coeff, &
             pres(i,:), dpres(i,:), dz(i,:), nc_nuceat_tend(i,:), exner(i,:), inv_exner(i,:), &
             inv_cld_frac_l(i,:), inv_cld_frac_i(i,:), inv_cld_frac_r(i,:), ni_activated(i,:), inv_qc_relvar(i,:), &
             cld_frac_i(i,:), cld_frac_l(i,:), cld_frac_r(i,:), qv_prev(i,:), t_prev(i,:), &
@@ -3668,7 +3669,7 @@ end subroutine rain_evap_instant_tend
 subroutine evaporate_rain(qr_incld,qc_incld,nr_incld,qi_incld, &
 cld_frac_l,cld_frac_r,qv,qv_prev,qv_sat_l,qv_sat_i, &
 ab,abi,epsr,epsi_tot,t,t_prev,latent_heat_sublim,dqsdt,dt, &
-qr2qv_evap_tend,nr_evap_tend)
+qr2qv_evap_tend,nr_evap_tend,p3_rain_evap_coeff)
 
   !Evaporation is basically (qv - sv_sat)/(tau_eff*ab) where tau_eff
   !is the total effective supersaturation removal timescale
@@ -3695,6 +3696,7 @@ qr2qv_evap_tend,nr_evap_tend)
    real(rtype), intent(in)  :: epsr,epsi_tot
    real(rtype), intent(in)  :: qv,qv_prev
    real(rtype), intent(in)  :: t,t_prev,latent_heat_sublim,dqsdt,dt
+   real(rtype), intent(in)  :: p3_rain_evap_coeff
    real(rtype), intent(out) :: qr2qv_evap_tend
    real(rtype), intent(out) :: nr_evap_tend
    real(rtype) :: cld_frac, eps_eff, tau_eff, tau_r, ssat_r, A_c, sup_r,inv_dt
@@ -3784,8 +3786,8 @@ qr2qv_evap_tend,nr_evap_tend)
          !neg in front
          call  rain_evap_instant_tend(ssat_r, ab, tau_r, instant_evap_tend)
 
-         qr2qv_evap_tend = instant_evap_tend*tscale_weight &
-              + equilib_evap_tend*(1._rtype-tscale_weight)
+         qr2qv_evap_tend = (instant_evap_tend*tscale_weight &
+              + equilib_evap_tend*(1._rtype-tscale_weight))*p3_rain_evap_coeff !added evaporation scaling coefficient
 
       end if
 
