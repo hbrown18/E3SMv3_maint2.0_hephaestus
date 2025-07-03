@@ -103,6 +103,10 @@ module aero_model
   real(r8)          :: sol_factic_interstitial = 0.4_r8
   real(r8)          :: aer_sol_factb = 0.1_r8
   real(r8)          :: seasalt_emis_scale
+  logical           :: seasalt_masspart
+  real(r8)          :: seasalt_sclfctr_a1
+  real(r8)          :: seasalt_sclfctr_a2
+  real(r8)          :: seasalt_u10_scale
   real(r8)          :: small = 1.e-36
 
   integer :: ndrydep = 0
@@ -134,6 +138,7 @@ contains
     character(len=16) :: aer_drydep_list(pcnst) = ' '
     namelist /aerosol_nl/ aer_wetdep_list, aer_drydep_list,          &
              sol_facti_cloud_borne, seasalt_emis_scale, sscav_tuning, &
+             seasalt_masspart, seasalt_sclfctr_a1, seasalt_sclfctr_a2, seasalt_u10_scale, &
        sol_factb_interstitial, sol_factic_interstitial, aer_sol_factb
     !-----------------------------------------------------------------------------
 
@@ -163,6 +168,10 @@ contains
     call mpibcast(sol_factic_interstitial, 1,                       mpir8,   0, mpicom)
     call mpibcast(sscav_tuning,          1,                         mpilog,  0, mpicom)
     call mpibcast(seasalt_emis_scale, 1, mpir8,   0, mpicom)
+    call mpibcast(seasalt_masspart, 1, mpilog,   0, mpicom)
+    call mpibcast(seasalt_sclfctr_a1, 1, mpir8,   0, mpicom)
+    call mpibcast(seasalt_sclfctr_a2, 1, mpir8,   0, mpicom)
+    call mpibcast(seasalt_u10_scale, 1, mpir8,   0, mpicom)
 #endif
 
     wetdep_list = aer_wetdep_list
@@ -2852,12 +2861,13 @@ do_lphase2_conditional: &
        u10cubed(:ncol)=u10(:ncol)*log(10._r8/z0)/log(state%zm(:ncol,pver)/z0)
 
        ! we need them to the 3.41 power, according to Gong et al., 1997:
-       u10cubed(:ncol)=u10cubed(:ncol)**3.41_r8
+       u10cubed(:ncol)=u10cubed(:ncol)**(3.41_r8*seasalt_u10_scale)
 
        sflx(:)=0._r8
        F_eff(:)=0._r8
 
-       call seasalt_emis(u10, u10cubed, lchnk, cam_in%sst, cam_in%ocnfrac, ncol, cam_in%cflx, seasalt_emis_scale, F_eff)
+       call seasalt_emis(u10, u10cubed, lchnk, cam_in%sst, cam_in%ocnfrac, ncol, cam_in%cflx, seasalt_emis_scale, seasalt_masspart, &
+                         seasalt_sclfctr_a1, seasalt_sclfctr_a2, F_eff)
 
        ! Write out salt mass fluxes to history files
        do m=1,seasalt_nbin-nslt_om

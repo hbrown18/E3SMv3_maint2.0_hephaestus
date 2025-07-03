@@ -432,7 +432,7 @@ subroutine ocean_data_readnl(nlfile)
 end subroutine ocean_data_readnl
 
   !=============================================================================
-  subroutine seasalt_emis(u10, u10cubed, lchnk, srf_temp, ocnfrc, ncol, cflx, emis_scale, F_eff)
+  subroutine seasalt_emis(u10, u10cubed, lchnk, srf_temp, ocnfrc, ncol, cflx, emis_scale, mpart_on, mpart_a1, mpart_a2, F_eff)
 
     use sslt_sections, only: nsections, fluxes, Dg, rdry
     use mo_constants,  only: dns_aer_sst=>seasalt_density, pi
@@ -444,6 +444,8 @@ end subroutine ocean_data_readnl
     real(r8), intent(in) :: srf_temp(pcols)
     real(r8), intent(in) :: ocnfrc(pcols)
     real(r8), intent(in) :: emis_scale
+    real(r8), intent(in) :: mpart_a1  
+    real(r8), intent(in) :: mpart_a2
     integer,  intent(in) :: ncol
     real(r8), intent(inout) :: cflx(:,:)
 ! Needed in Gantt et al. calculation of organic mass fraction
@@ -455,6 +457,10 @@ end subroutine ocean_data_readnl
     real(r8) :: fi(pcols,nsections)
     integer :: m, n
     real(r8):: cflx_help2(pcols)
+    real(r8):: cflx_ait(pcols)
+    real(r8):: cflx_acc(pcols)
+    real(r8):: cflx_crs(pcols)
+    real(r8):: tot_sslt_mass(pcols)
 
    real(r8), pointer :: chla(:)          ! for Gantt et al. (2011) organic mass fraction
    real(r8), pointer :: mpoly(:)         ! for Burrows et al. (2014) organic mass fraction
@@ -462,6 +468,7 @@ end subroutine ocean_data_readnl
    real(r8), pointer :: mlip(:)          ! for Burrows et al. (2014) organic mass fraction
 
    logical :: emit_this_mode(om_num_modes)
+   logical :: mpart_on
 
    real(r8) :: mass_frac_bub_section(pcols, n_org_max, nsections)
    real(r8) :: om_ssa(pcols, nsections)
@@ -599,6 +606,34 @@ end subroutine ocean_data_readnl
        enddo section_loop_sslt_mass
 
 enddo tracer_loop
+
+#if ( defined MODAL_AERO_4MODE_MOM || defined MODAL_AERO_5MODE)
+!Adding manual mass partitioning into seasalt modes
+! Possible values:
+!       aitken: 0.01-1%; accumulation: 0.1-10%; coarse:89-99.89%
+! 1. retrieve total aerosol mass (tot_sslt_mass)
+! 2. re-partition into aitken, accumulation, and coarse modes based on namelist params
+if (mpart_on==.true.) then
+
+   cflx_ait(:ncol) = 0.0_r8
+   cflx_acc(:ncol) = 0.0_r8
+   cflx_crs(:ncol) = 0.0_r8
+   tot_sslt_mass(:ncol) = 0.0_r8
+   cflx_acc(:ncol) = cflx(:ncol,seasalt_indices(1)) !aitken
+   cflx_ait(:ncol) = cflx(:ncol,seasalt_indices(2)) !accumulation
+   cflx_crs(:ncol) = cflx(:ncol,seasalt_indices(3)) !coarse
+   tot_sslt_mass(:ncol) = cflx_ait(:ncol)+cflx_acc(:ncol)+cflx_crs(:ncol)
+
+   !mass repartition based on namelist definitions
+   !overwriting original cflx modal values
+   cflx(:ncol,seasalt_indices(1)) = tot_sslt_mass(:ncol)*10**(mpart_a1)
+   cflx(:ncol,seasalt_indices(2)) = tot_sslt_mass(:ncol)*10**(mpart_a2)
+   cflx(:ncol,seasalt_indices(3)) = tot_sslt_mass(:ncol) - &
+                                    (cflx(:ncol,seasalt_indices(1))+cflx(:ncol,seasalt_indices(2)))
+
+end if
+#endif
+
 #if ( defined MODAL_AERO_9MODE || defined MODAL_AERO_4MODE_MOM || defined MODAL_AERO_5MODE)
 
 add_om_species: if ( has_mam_mom ) then

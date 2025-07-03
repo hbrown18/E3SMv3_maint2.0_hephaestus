@@ -44,6 +44,7 @@ module dust_model
   real(r8) :: dust_stk_crc(dust_nbin)
 
   real(r8)          :: dust_emis_fact = -1.e36_r8        ! tuning parameter for dust emissions
+  real(r8)          :: dust_sclfctr_a1 = -1.e36_r8       ! tuning parameter for dust mass partition in acc. mode
   character(len=cl) :: soil_erod_file = 'soil_erod_file' ! full pathname for soil erodibility dataset
 
   logical :: dust_active = .false.
@@ -65,7 +66,7 @@ module dust_model
     integer :: unitn, ierr
     character(len=*), parameter :: subname = 'dust_readnl'
 
-    namelist /dust_nl/ dust_emis_fact, soil_erod_file
+    namelist /dust_nl/ dust_emis_fact, dust_sclfctr_a1, soil_erod_file
 
     !-----------------------------------------------------------------------------
 
@@ -87,6 +88,7 @@ module dust_model
 #ifdef SPMD
     ! Broadcast namelist variables
     call mpibcast(dust_emis_fact, 1,                   mpir8,   0, mpicom)
+    call mpibcast(dust_sclfctr_a1, 1,                   mpir8,   0, mpicom)
     call mpibcast(soil_erod_file, len(soil_erod_file), mpichar, 0, mpicom)
 #endif
 
@@ -111,7 +113,7 @@ module dust_model
     dust_active = any(dust_indices(:) > 0)
     if (.not.dust_active) return
    
-    call  soil_erod_init( dust_emis_fact, soil_erod_file )
+    call  soil_erod_init( dust_emis_fact, dust_sclfctr_a1, soil_erod_file )
 
     call dust_set_params( dust_nbin, dust_dmt_grd, dust_dmt_vwr, dust_stk_crc )
 
@@ -122,7 +124,7 @@ module dust_model
   !===============================================================================
   !===============================================================================
   subroutine dust_emis( ncol, lchnk, dust_flux_in, cflx, soil_erod )
-    use soil_erod_mod, only : soil_erod_fact
+    use soil_erod_mod, only : soil_erod_fact, dust_acc
     use soil_erod_mod, only : soil_erodibility
     use mo_constants,  only : dust_density
     use physconst,     only : pi
@@ -137,8 +139,14 @@ module dust_model
     integer :: i, m, idst, inum
     real(r8) :: x_mton
     real(r8),parameter :: soil_erod_threshold = 0.1_r8
+    !adding varying scale factor for PROCEED PPE generation
+    real(r8) :: dust_emis_sclfctr_var(dust_nbin)
 
     ! set dust emissions
+
+    ! Setting dust emission scale factors that can be modified in namelist
+    dust_emis_sclfctr_var(1) = 10**(dust_acc)
+    dust_emis_sclfctr_var(dust_nbin) = 1._r8-10**(dust_acc)
 
     col_loop: do i =1,ncol
 
@@ -157,8 +165,10 @@ module dust_model
        ! to calculate fraction of bin (0.1-10um) in range (0.1-20um) = 0.87
        ! based on Kok11, that fraction is 0.73
 !          cflx(i,idst) = sum( -dust_flux_in(i,:) ) &
+!          cflx(i,idst) = sum( -dust_flux_in(i,:) ) * 0.73_r8/0.87_r8 &
+!               * dust_emis_sclfctr(m)*soil_erod(i)/soil_erod_fact*1.15_r8
           cflx(i,idst) = sum( -dust_flux_in(i,:) ) * 0.73_r8/0.87_r8 &
-               * dust_emis_sclfctr(m)*soil_erod(i)/soil_erod_fact*1.15_r8
+               * dust_emis_sclfctr_var(m)*soil_erod(i)/soil_erod_fact*1.15_r8
 
           x_mton = 6._r8 / (pi * dust_density * (dust_dmt_vwr(m)**3._r8))                
 

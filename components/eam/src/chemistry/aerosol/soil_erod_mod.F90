@@ -12,15 +12,17 @@ module soil_erod_mod
   public :: soil_erod_init
   public :: soil_erodibility
   public :: soil_erod_fact
+  public :: dust_acc
 
   real(r8), allocatable ::  soil_erodibility(:,:)  ! soil erodibility factor
   real(r8) :: soil_erod_fact                       ! tuning parameter for dust emissions
+  real(r8) :: dust_acc                      ! tuning factor for partitioning mass into accumulation mode
 
 contains
 
   !=============================================================================
   !=============================================================================
-  subroutine soil_erod_init( dust_emis_fact, soil_erod_file )
+  subroutine soil_erod_init( dust_emis_fact, dust_sclfctr_a1, soil_erod_file )  
     use interpolate_data, only: lininterp_init, lininterp, lininterp_finish, interp_type
     use ppgrid,           only: begchunk, endchunk, pcols
     use mo_constants,     only: pi, d2r
@@ -30,6 +32,7 @@ contains
     use ioFileMod,        only: getfil
 
     real(r8),         intent(in) :: dust_emis_fact
+    real(r8),         intent(in) :: dust_sclfctr_a1
     character(len=*), intent(in) :: soil_erod_file
 
     real(r8), allocatable ::  soil_erodibility_in(:,:)  ! temporary input array
@@ -45,11 +48,13 @@ contains
     real(r8), parameter :: zero=0._r8, twopi=2._r8*pi
 
     soil_erod_fact = dust_emis_fact
+    dust_acc = dust_sclfctr_a1
 
     ! Summary to log file
     if (masterproc) then
        write(iulog,*) 'soil_erod_mod: soil erodibility dataset: ', trim(soil_erod_file)
        write(iulog,*) 'soil_erod_mod: soil_erod_fact = ', soil_erod_fact
+       write(iulog,*) 'soil_erod_mod: dust_acc       = ', dust_acc
     end if
 
     ! for soil erodibility in mobilization, apply inside CAM instead of lsm.
